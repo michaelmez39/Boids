@@ -144,29 +144,33 @@ pub struct Flock {
 impl Flock {
      // Cohesion
      fn rule1(&self, b: &Vec2 ) -> Vec2 {
-        self.positions.iter().fold(Vec2::zero(), |acc, c| {
+        let j = self.positions.iter().fold(Vec2::zero(), |acc, c| {
             if b != c {
                 acc + *b
             } else {
                 acc
             }
-        }) / self.config.cohesion
+        }) / (self.positions.len() - 1) as f64;
+        let j = j - b;
+        j / self.config.cohesion
     }
 
-    // Alignment
-
-    fn rule2(&self, b: &Vec2) -> Vec2 {
-        self.positions.iter().fold(Vec2::zero(), |acc, c| {
-            if (*b-c).abs() < self.config.separation {
-                acc - (*b-c)
+    // Separation
+    fn rule2(&self, b: &Vec2, i: usize) -> Vec2 {
+        self.positions.iter().enumerate().fold(Vec2::zero(), |acc, (j, c)| {
+            if  i != j && (*c-b).abs() < self.config.separation {
+                acc - (*c-b)
             } else {
                 acc
             }
-        })
+        }) / 3.0
     }
 
+    // Alignment    
     fn rule3(&self, velocity: &Vec<Vec2>, e: usize) -> Vec2 {
-        velocity.iter().enumerate().fold(Vec2::zero(), |acc, (i, v)| if i != e {acc + *v} else {acc}) / self.config.alignment
+        let pvj = velocity.iter().enumerate().fold(Vec2::zero(), |acc, (i, v)| if i != e {acc + *v} else {acc});
+        let pvj = pvj / (velocity.len() - 1) as f64;
+        (pvj - velocity[e]) / self.config.alignment
     }
 }
 
@@ -197,7 +201,7 @@ impl Flock {
     
     pub fn step(&mut self) {
         for (element, position) in self.positions.iter().enumerate() {
-            let mut velocity = self.rule1(position) + self.rule2(position) + self.rule3(&self.velocity, element);
+            let mut velocity = self.rule1(position) + self.rule2(position, element) + self.rule3(&self.velocity, element);
             if velocity.abs() > self.config.limit {
                 velocity = (velocity / (velocity.abs())) * self.config.limit;
             }
@@ -213,7 +217,7 @@ impl Flock {
             } else if position.y < 0.0 {
                 velocity.y = 3.0;
             }
-            self.velocity[element] = velocity;
+            self.velocity[element] = self.velocity[element] + velocity;
         }
         for i in 0..self.positions.len() {
             let position = self.positions[i] + self.velocity[i];
