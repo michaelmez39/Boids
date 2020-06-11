@@ -146,7 +146,7 @@ impl Flock {
      fn rule1(&self, b: &Vec2 ) -> Vec2 {
         let j = self.positions.iter().fold(Vec2::zero(), |acc, c| {
             if b != c {
-                acc + *b
+                acc + *c
             } else {
                 acc
             }
@@ -178,6 +178,7 @@ impl Flock {
 impl Flock {
     pub fn new_random(n: usize, width: usize, height: usize, separation: f64, alignment: f64, cohesion: f64, limit: f64) -> Self {
         let positions: Vec<Vec2> = (0..n).map(|_| Vec2::new(rand_range(0..width), rand_range(0..height))).collect();
+        let velocity: Vec<Vec2> = vec!(Vec2::zero(); n);
         Self {
             positions,
             velocity: vec!(Vec2::zero(); n),
@@ -207,15 +208,15 @@ impl Flock {
             }
 
             if position.x > self.config.width {
-                velocity.x = -3.0;
+                velocity.x = -self.config.limit;
             } else if position.x < 0.0 {
-                velocity.x = 3.0;
+                velocity.x = self.config.limit;
             }
 
             if position.y > self.config.height {
-                velocity.y = -3.0;
+                velocity.y = -self.config.limit;
             } else if position.y < 0.0 {
-                velocity.y = 3.0;
+                velocity.y = self.config.limit;
             }
             self.velocity[element] = self.velocity[element] + velocity;
         }
